@@ -576,7 +576,7 @@ dependencies = [
 
 [[package]]
 name = "bevy_keyboard_shortcuts"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "bevy",
  "serde",

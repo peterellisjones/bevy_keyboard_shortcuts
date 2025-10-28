@@ -1,6 +1,6 @@
 [package]
 name = "bevy_keyboard_shortcuts"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 authors = ["Peter Jones <peter@example.com>"]  # Update with your email
 description = "Keyboard shortcut system for Bevy applications"
