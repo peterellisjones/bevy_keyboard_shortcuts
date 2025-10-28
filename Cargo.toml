@@ -1,0 +1,8 @@
+[package]
+name = "bevy_keyboard_shortcuts"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+bevy = { version = "*", default-features = false, features = ["serialize"] }
+serde = { version = "*", features = ["derive"] }
