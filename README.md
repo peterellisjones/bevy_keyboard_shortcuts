@@ -16,7 +16,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-bevy_keyboard_shortcuts = { git = "https://github.com/peterellisjones/bevy_keyboard_shortcuts" }
+bevy_keyboard_shortcuts = "*"
 ```
 
 ## Quick Start
@@ -200,7 +200,7 @@ flexible:
 
 ### Builder Methods
 
-Create shortcuts using the ergonomic builder API:
+Create shortcuts using the builder API:
 
 ```rust
 // Non-repeating shortcuts (single press)
