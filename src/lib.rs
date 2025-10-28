@@ -97,6 +97,56 @@
 //!       modifiers:
 //!         control: RequirePressed
 //! ```
+//!
+//! # Key Names Reference
+//!
+//! Key names in YAML/JSON configuration match Bevy's `KeyCode` enum variants exactly. Remove the `KeyCode::` prefix:
+//!
+//! - Letters: `KeyA`, `KeyB`, ..., `KeyZ`
+//! - Numbers: `Digit0`, `Digit1`, ..., `Digit9`
+//! - Function keys: `F1`, `F2`, ..., `F12`
+//! - Arrows: `ArrowUp`, `ArrowDown`, `ArrowLeft`, `ArrowRight`
+//! - Special keys: `Space`, `Enter`, `Escape`, `Tab`, `Backspace`, `Delete`
+//! - Numpad: `Numpad0`, `Numpad1`, ..., `Numpad9`, `NumpadAdd`, `NumpadSubtract`
+//!
+//! For example: `KeyCode::KeyA` becomes `"KeyA"`, `KeyCode::Space` becomes `"Space"`.
+//!
+//! For the complete list, see [Bevy's KeyCode documentation](https://docs.rs/bevy/latest/bevy/input/keyboard/enum.KeyCode.html).
+//!
+//! # Modifier Behavior
+//!
+//! By default, **all modifiers are ignored** - shortcuts trigger regardless of modifier state.
+//!
+//! Each modifier key (Ctrl, Alt, Shift, Super) can be configured:
+//!
+//! - **Ignore** (DEFAULT) - Don't check this modifier (works with or without)
+//!   - This is the default if no modifier methods are called
+//!   - The shortcut triggers regardless of the modifier's state
+//! - **RequirePressed** - The modifier MUST be pressed
+//!   - Use `.with_ctrl()`, `.with_alt()`, `.with_shift()`, `.with_super()`
+//!   - In YAML: `control: RequirePressed`, `alt: RequirePressed`, etc.
+//! - **RequireNotPressed** - The modifier must NOT be pressed
+//!   - Use `.without_ctrl()`, `.without_alt()`, `.without_shift()`, `.without_super()`
+//!   - In YAML: `control: RequireNotPressed`, `alt: RequireNotPressed`, etc.
+//!
+//! ## Examples
+//!
+//! ```rust
+//! use bevy::prelude::*;
+//! use bevy_keyboard_shortcuts::Shortcuts;
+//!
+//! // Default - ignores all modifiers
+//! let flexible = Shortcuts::single_press(&[KeyCode::KeyA]);
+//!
+//! // Requires Ctrl
+//! let save = Shortcuts::single_press(&[KeyCode::KeyS]).with_ctrl();
+//!
+//! // Requires Ctrl AND Shift
+//! let redo = Shortcuts::single_press(&[KeyCode::KeyZ]).with_ctrl().with_shift();
+//!
+//! // Forbids Ctrl (S without Ctrl)
+//! let action = Shortcuts::single_press(&[KeyCode::KeyS]).without_ctrl();
+//! ```
 
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};

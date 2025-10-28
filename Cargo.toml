@@ -1,8 +1,8 @@
 [package]
 name = "bevy_keyboard_shortcuts"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2024"
-authors = ["Peter Jones <peter@example.com>"]  # Update with your email
+authors = ["Peter Jones <pete@peterellisjones.com>"]
 description = "Keyboard shortcut system for Bevy applications"
 license = "MIT"
 repository = "https://github.com/peterellisjones/bevy_keyboard_shortcuts"
