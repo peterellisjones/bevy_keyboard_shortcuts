@@ -1,6 +1,6 @@
 # bevy_keyboard_shortcuts
 
-A flexible and ergonomic keyboard shortcut system for Bevy applications, with full modifier key support and seamless YAML/JSON configuration.
+Keyboard shortcut system for Bevy applications, with modifier key support and YAML/JSON configuration support.
 
 ## Features
 

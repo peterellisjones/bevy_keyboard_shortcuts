@@ -2,7 +2,14 @@
 name = "bevy_keyboard_shortcuts"
 version = "0.1.0"
 edition = "2024"
+authors = ["Peter Jones <peter@example.com>"]  # Update with your email
+description = "Keyboard shortcut system for Bevy applications"
+license = "MIT"
+repository = "https://github.com/peterellisjones/bevy_keyboard_shortcuts"
+keywords = ["bevy", "keyboard", "shortcuts", "input", "gamedev"]
+categories = ["game-development", "game-engines"]
+readme = "README.md"
 
 [dependencies]
-bevy = { version = "*", default-features = false, features = ["serialize"] }
-serde = { version = "*", features = ["derive"] }
+bevy = { version = "0.17", default-features = false, features = ["serialize"] }
+serde = { version = "1.0", features = ["derive"] }
