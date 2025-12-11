@@ -290,7 +290,7 @@ impl Shortcut {
     /// Returns a human-readable string representation of the key.
     ///
     /// This converts Bevy's KeyCode debug format into a more user-friendly display string.
-    /// For example, `KeyA` becomes `"A"`, `ArrowLeft` becomes `"←"`, etc.
+    /// For example, `KeyA` becomes `"A"`, `ArrowLeft` becomes `"Left"`, etc.
     fn key_str(&self) -> String {
         let debug_str = format!("{:?}", self.key);
 
@@ -713,9 +713,9 @@ impl fmt::Display for Shortcuts {
 ///
 /// This is used by `Shortcut::key_str()` to convert Bevy's KeyCode variants into
 /// user-friendly strings for display in UI. For example:
-/// - `KeyA` → `"A"`
-/// - `ArrowLeft` → `"←"`
-/// - `Backspace` → `"⌫"`
+/// - `KeyA` -> `"A"`
+/// - `ArrowLeft` -> `"Left"`
+/// - `Backspace` -> `"Backspace"`
 static KEY_DISPLAY_MAP: LazyLock<HashMap<&'static str, &'static str>> = LazyLock::new(|| {
     let mut m = HashMap::new();
 
@@ -733,18 +733,18 @@ static KEY_DISPLAY_MAP: LazyLock<HashMap<&'static str, &'static str>> = LazyLock
     m.insert("Slash", "/");
 
     // Special keys with symbols
-    m.insert("Backspace", "⌫");
-    m.insert("Delete", "⌦");
-    m.insert("Enter", "↵");
+    m.insert("Backspace", "Backspace");
+    m.insert("Delete", "Del");
+    m.insert("Enter", "Enter");
     m.insert("Escape", "Esc");
-    m.insert("Tab", "⇥");
+    m.insert("Tab", "Tab");
     m.insert("Space", "Space");
 
     // Navigation keys
-    m.insert("ArrowUp", "↑");
-    m.insert("ArrowDown", "↓");
-    m.insert("ArrowLeft", "←");
-    m.insert("ArrowRight", "→");
+    m.insert("ArrowUp", "Up");
+    m.insert("ArrowDown", "Down");
+    m.insert("ArrowLeft", "Left");
+    m.insert("ArrowRight", "Right");
     m.insert("Home", "Home");
     m.insert("End", "End");
     m.insert("PageUp", "PgUp");
@@ -794,7 +794,7 @@ static KEY_DISPLAY_MAP: LazyLock<HashMap<&'static str, &'static str>> = LazyLock
     m.insert("NumpadEqual", "Num =");
     m.insert("NumpadEnter", "Num Enter");
     m.insert("NumpadComma", "Num ,");
-    m.insert("NumpadBackspace", "Num ⌫");
+    m.insert("NumpadBackspace", "Num Backspace");
     m.insert("NumpadClear", "Num Clear");
     m.insert("NumpadClearEntry", "Num CE");
     m.insert("NumpadHash", "Num #");
@@ -859,7 +859,7 @@ static KEY_DISPLAY_MAP: LazyLock<HashMap<&'static str, &'static str>> = LazyLock
     // International keys
     m.insert("IntlBackslash", "Intl \\");
     m.insert("IntlRo", "Ro");
-    m.insert("IntlYen", "¥");
+    m.insert("IntlYen", "Yen");
 
     // Language keys
     m.insert("Lang1", "Lang1");
@@ -885,7 +885,7 @@ static KEY_DISPLAY_MAP: LazyLock<HashMap<&'static str, &'static str>> = LazyLock
     m.insert("Power", "Power");
     m.insert("Sleep", "Sleep");
     m.insert("WakeUp", "WakeUp");
-    m.insert("Eject", "⏏");
+    m.insert("Eject", "Eject");
 
     // Function lock and other special keys
     m.insert("Fn", "Fn");
@@ -910,7 +910,7 @@ mod tests {
     #[test]
     fn test_shortcuts_display_multiple() {
         let shortcuts = Shortcuts::repeating(&[KeyCode::KeyA, KeyCode::ArrowLeft]);
-        assert_eq!(shortcuts.to_string(), "A, ←");
+        assert_eq!(shortcuts.to_string(), "A, Left");
     }
 
     #[test]
@@ -942,7 +942,7 @@ mod tests {
         let shortcuts =
             Shortcuts::single_press(&[KeyCode::ArrowUp, KeyCode::Space, KeyCode::Enter]);
 
-        assert_eq!(shortcuts.to_string(), "↑, Space, ↵");
+        assert_eq!(shortcuts.to_string(), "Up, Space, Enter");
     }
 
     #[test]
