@@ -148,6 +148,7 @@
 //! let action = Shortcuts::single_press(&[KeyCode::KeyS]).without_ctrl();
 //! ```
 
+use bevy::input::keyboard::KeyCode;
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -375,7 +376,7 @@ impl fmt::Display for Shortcut {
 /// // Multiple alternatives for movement
 /// let move_left = Shortcuts::repeating(&[KeyCode::KeyA, KeyCode::ArrowLeft]);
 /// ```
-#[derive(Reflect, Debug, Deserialize, Serialize, Default)]
+#[derive(Reflect, Debug, Clone, Deserialize, Serialize, Default)]
 pub struct Shortcuts {
     /// List of alternative shortcuts that trigger the same action
     /// This field is public for serde deserialization but should not be accessed directly.
