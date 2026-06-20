@@ -146,3 +146,7 @@ let redo = Shortcuts::single_press(&[KeyCode::KeyZ]).with_ctrl().with_shift();
 // Forbids Ctrl (S without Ctrl)
 let action = Shortcuts::single_press(&[KeyCode::KeyS]).without_ctrl();
 ```
+
+## AI assistance
+
+This crate was developed with the help of AI coding tools.
