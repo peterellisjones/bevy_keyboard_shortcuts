@@ -115,6 +115,19 @@ For example: `KeyCode::KeyA` becomes `"KeyA"`, `KeyCode::Space` becomes `"Space"
 
 For the complete list, see [Bevy's KeyCode documentation](https://docs.rs/bevy/latest/bevy/input/keyboard/enum.KeyCode.html).
 
+## Displaying a binding
+
+`Shortcuts` implements `Display` (`Ctrl + Z, ,`). When a UI needs the *parts* of
+each binding — to draw modifier and key keycaps, say — iterate them instead of
+parsing that string (a bound `,` key is indistinguishable from the separator):
+
+```rust
+for chord in shortcuts.iter() {
+    let modifiers: Vec<&str> = chord.modifiers.required_names(); // ["Ctrl"]
+    let key: String = chord.key_str();                           // "Z"
+}
+```
+
 ## Modifier Behavior
 
 By default, **all modifiers are ignored** - shortcuts trigger regardless of modifier state.

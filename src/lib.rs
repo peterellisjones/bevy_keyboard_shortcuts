@@ -157,10 +157,12 @@ use std::sync::LazyLock;
 
 /// A single keyboard shortcut consisting of a key and optional modifiers.
 ///
-/// This type is an internal implementation detail. Users should interact with
-/// the `Shortcuts` type instead, which provides a more ergonomic API.
+/// Build and match shortcuts through [`Shortcuts`]; read them back through
+/// [`Shortcuts::iter`] when a UI needs the *structure* of a binding (each
+/// modifier and the key as separate parts — e.g. to draw keycaps) rather than
+/// the flat [`Display`] string.
 #[derive(Reflect, Debug, Clone, Deserialize, Serialize)]
-struct Shortcut {
+pub struct Shortcut {
     /// The main key that must be pressed
     pub key: KeyCode,
     /// Optional modifier keys (Ctrl, Alt, Shift, Super)
@@ -266,8 +268,12 @@ impl Modifiers {
     }
 }
 
-impl fmt::Display for Modifiers {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl Modifiers {
+    /// The display names of the modifiers this shortcut *requires* pressed, in
+    /// the order [`Display`] prints them (`Ctrl`, `Alt`, `Shift`, `Super`).
+    /// Ignored and require-not-pressed modifiers are omitted — this is the
+    /// list a UI would draw as modifier keycaps in front of the key.
+    pub fn required_names(&self) -> Vec<&'static str> {
         let mut parts = Vec::new();
 
         if self.control == Some(ModifierType::RequirePressed) {
@@ -283,7 +289,13 @@ impl fmt::Display for Modifiers {
             parts.push("Super");
         }
 
-        write!(f, "{}", parts.join(" + "))
+        parts
+    }
+}
+
+impl fmt::Display for Modifiers {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.required_names().join(" + "))
     }
 }
 
@@ -292,7 +304,7 @@ impl Shortcut {
     ///
     /// This converts Bevy's KeyCode debug format into a more user-friendly display string.
     /// For example, `KeyA` becomes `"A"`, `ArrowLeft` becomes `"Left"`, etc.
-    fn key_str(&self) -> String {
+    pub fn key_str(&self) -> String {
         let debug_str = format!("{:?}", self.key);
 
         KEY_DISPLAY_MAP
@@ -382,13 +394,11 @@ pub struct Shortcuts {
     /// This field is public for serde deserialization but should not be accessed directly.
     /// Use the builder methods instead.
     #[doc(hidden)]
-    #[allow(private_interfaces)]
     pub shortcuts: Vec<Shortcut>,
     /// If `true`, the shortcut triggers continuously while held.
     /// If `false`, it only triggers once when initially pressed.
     #[serde(default)]
     #[doc(hidden)]
-    #[allow(private_interfaces)]
     pub repeats: bool,
 }
 
@@ -697,6 +707,19 @@ impl Shortcuts {
     }
 }
 
+impl Shortcuts {
+    /// Iterate the alternative shortcuts in declaration order.
+    ///
+    /// Use this when a UI needs each binding as *parts* — the required
+    /// modifiers ([`Modifiers::required_names`]) and the key
+    /// ([`Shortcut::key_str`]) — rather than the flat [`Display`] string,
+    /// which cannot be split back apart (a bound `,` key renders as `","`,
+    /// the same characters that separate alternatives).
+    pub fn iter(&self) -> impl Iterator<Item = &Shortcut> {
+        self.shortcuts.iter()
+    }
+}
+
 impl fmt::Display for Shortcuts {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let keys = self
@@ -900,6 +923,19 @@ static KEY_DISPLAY_MAP: LazyLock<HashMap<&'static str, &'static str>> = LazyLock
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn iter_exposes_modifier_and_key_parts() {
+        use super::*;
+        let s = Shortcuts::single_press(&[KeyCode::KeyZ, KeyCode::Comma]).with_ctrl();
+        let parts: Vec<(Vec<&'static str>, String)> = s
+            .iter()
+            .map(|c| (c.modifiers.required_names(), c.key_str()))
+            .collect();
+        assert_eq!(parts, vec![(vec!["Ctrl"], "Z".to_string()), (vec![], ",".to_string())]);
+        // The flat form is ambiguous on the comma key — that is why `iter` exists.
+        assert_eq!(s.to_string(), "Ctrl + Z, ,");
+    }
+
     use super::*;
 
     #[test]
