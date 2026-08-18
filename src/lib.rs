@@ -175,7 +175,7 @@ pub struct Shortcut {
 /// This enum controls whether a modifier key (Ctrl, Alt, Shift, Super) must be pressed
 /// or must not be pressed. When wrapped in `Option`, `None` means the modifier is ignored.
 #[derive(Reflect, Debug, Clone, PartialEq, Deserialize, Serialize)]
-enum ModifierType {
+pub enum ModifierType {
     /// The modifier must be pressed for the shortcut to match
     RequirePressed,
     /// The modifier must NOT be pressed for the shortcut to match
@@ -210,7 +210,7 @@ impl ModifierType {
 /// - `Some(RequirePressed)` means the modifier must be pressed
 /// - `Some(RequireNotPressed)` means the modifier must NOT be pressed
 #[derive(Reflect, Debug, Clone, Default, Deserialize, Serialize)]
-struct Modifiers {
+pub struct Modifiers {
     /// Control/Command key requirement (None = ignore)
     #[serde(default)]
     pub control: Option<ModifierType>,
@@ -923,6 +923,19 @@ static KEY_DISPLAY_MAP: LazyLock<HashMap<&'static str, &'static str>> = LazyLock
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn modifier_types_are_public_for_downstream_use() {
+        // Compile-time check that a consumer can name these types (0.5.0 shipped
+        // `required_names` on a private `Modifiers`, which made it unusable).
+        fn takes(m: &super::Modifiers) -> Vec<&'static str> {
+            m.required_names()
+        }
+        let s = super::Shortcuts::single_press(&[super::KeyCode::KeyA]).with_shift();
+        let names: Vec<Vec<&'static str>> = s.iter().map(|c| takes(&c.modifiers)).collect();
+        assert_eq!(names, vec![vec!["Shift"]]);
+        let _: super::ModifierType = super::ModifierType::RequireNotPressed;
+    }
+
     #[test]
     fn iter_exposes_modifier_and_key_parts() {
         use super::*;
