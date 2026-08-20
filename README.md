@@ -160,6 +160,31 @@ let redo = Shortcuts::single_press(&[KeyCode::KeyZ]).with_ctrl().with_shift();
 let action = Shortcuts::single_press(&[KeyCode::KeyS]).without_ctrl();
 ```
 
+### Carrying requirements across a rebind
+
+Because ignore is the default, pairing a bare key with a modified one needs
+`RequireNotPressed` on the bare binding — otherwise `Ctrl+1` fires the bare `1`
+action too. That requirement is invisible in `Display`, which prints only the
+modifiers a shortcut requires *pressed*, so a rebind UI that rebuilds a binding
+from what it can see drops it silently.
+
+`modifiers()` reads the requirements off a binding and `with_modifiers()`
+re-applies them, so a capture path can carry them over:
+
+```rust
+// `Ctrl+1` assigns a control group; bare `1` recalls it and must not fire
+// while Ctrl is held.
+let recall = Shortcuts::single_press(&[KeyCode::Digit1]).without_ctrl();
+
+// The player rebinds recall to `2` — carry the requirement over.
+let rebound = Shortcuts::single_press(&[KeyCode::Digit2]).with_modifiers(recall.modifiers());
+```
+
+Unlike the `with_*` / `without_*` builders, `with_modifiers` overwrites rather
+than debug-asserting the requirement is unset, and applies to *every*
+alternative — so a two-key binding like `A` / `Left` can carry it on both, which
+no builder chain can express.
+
 ## AI assistance
 
 This crate was developed with the help of AI coding tools.

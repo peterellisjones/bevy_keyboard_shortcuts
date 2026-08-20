@@ -147,6 +147,31 @@
 //! // Forbids Ctrl (S without Ctrl)
 //! let action = Shortcuts::single_press(&[KeyCode::KeyS]).without_ctrl();
 //! ```
+//!
+//! ## Carrying requirements across a rebind
+//!
+//! **Ignore is the default, so a bare key fires while any modifier is held** —
+//! a bare `S` binding triggers on `Ctrl+S` too. Pairing a bare key with a
+//! modified one therefore requires `RequireNotPressed` on the bare binding, and
+//! that requirement is *invisible* in [`Display`](std::fmt::Display), which
+//! prints only the modifiers a shortcut requires **pressed**. A rebind UI that
+//! rebuilds a binding from what it can see thus drops the requirement silently.
+//!
+//! [`Shortcuts::modifiers`] and [`Shortcuts::with_modifiers`] are the round
+//! trip that avoids it:
+//!
+//! ```rust
+//! use bevy::prelude::*;
+//! use bevy_keyboard_shortcuts::{ModifierType, Shortcuts};
+//!
+//! // `Ctrl+1` assigns a control group; bare `1` recalls it and must not fire
+//! // while Ctrl is held.
+//! let recall = Shortcuts::single_press(&[KeyCode::Digit1]).without_ctrl();
+//!
+//! // The player rebinds recall to `2`. Carry the requirement over.
+//! let rebound = Shortcuts::single_press(&[KeyCode::Digit2]).with_modifiers(recall.modifiers());
+//! assert_eq!(rebound.modifiers().control, Some(ModifierType::RequireNotPressed));
+//! ```
 
 use bevy::input::keyboard::KeyCode;
 use bevy::prelude::*;
@@ -202,13 +227,17 @@ impl ModifierType {
 
 /// A collection of modifier key requirements for a shortcut.
 ///
-/// This type is an internal implementation detail. Users should use the builder
-/// methods on `Shortcuts` instead.
-///
 /// Each modifier is an `Option<ModifierType>`:
 /// - `None` means the modifier is ignored (default)
 /// - `Some(RequirePressed)` means the modifier must be pressed
 /// - `Some(RequireNotPressed)` means the modifier must NOT be pressed
+///
+/// Build shortcuts with the `Shortcuts` builder methods (`with_ctrl`,
+/// `without_ctrl`, …) — they are the readable form for a binding written in
+/// code. Name this type directly when a *binding is data*: reading requirements
+/// back off an existing binding ([`Shortcuts::modifiers`]) and re-applying them
+/// to another ([`Shortcuts::with_modifiers`]), which is what a rebind UI needs
+/// in order not to silently drop a `RequireNotPressed` the old binding carried.
 #[derive(Reflect, Debug, Clone, Default, Deserialize, Serialize)]
 pub struct Modifiers {
     /// Control/Command key requirement (None = ignore)
@@ -348,7 +377,12 @@ impl Shortcut {
 
 impl fmt::Display for Shortcut {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if !self.modifiers.none() {
+        // Keyed on what `Modifiers`' own `Display` will print, not on whether a
+        // requirement is set at all: a shortcut carrying only `RequireNotPressed`
+        // requirements has `none() == false` but nothing to print, and testing
+        // `none()` here rendered a bare `Ctrl: RequireNotPressed` binding on `1`
+        // as `" + 1"`.
+        if !self.modifiers.required_names().is_empty() {
             write!(f, "{} + ", self.modifiers)?
         }
         write!(f, "{}", self.key_str())
@@ -670,6 +704,70 @@ impl Shortcuts {
         self
     }
 
+    /// The modifier requirements this binding carries.
+    ///
+    /// Reads the first alternative — the one every `with_*` / `without_*`
+    /// builder writes to — and returns [`Modifiers::default`] (all ignored) for
+    /// an empty binding. This is the read half of the round trip a rebind UI
+    /// needs: a `RequireNotPressed` requirement is invisible in [`Display`]
+    /// (which prints only the modifiers a shortcut *requires pressed*), so a
+    /// capture path that rebuilds a binding from its printed form silently
+    /// drops it.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use bevy::prelude::KeyCode;
+    /// use bevy_keyboard_shortcuts::{ModifierType, Shortcuts};
+    ///
+    /// let recall = Shortcuts::single_press(&[KeyCode::Digit1]).without_ctrl();
+    /// assert_eq!(recall.modifiers().control, Some(ModifierType::RequireNotPressed));
+    /// // Nothing in the printed form says so:
+    /// assert_eq!(recall.to_string(), "1");
+    /// ```
+    pub fn modifiers(&self) -> Modifiers {
+        self.shortcuts
+            .first()
+            .map(|shortcut| shortcut.modifiers.clone())
+            .unwrap_or_default()
+    }
+
+    /// Replaces the modifier requirements on **every** alternative.
+    ///
+    /// The write half of the round trip started by [`Shortcuts::modifiers`].
+    /// It differs from the `with_*` / `without_*` builders in both respects
+    /// that make those unusable for re-applying a requirement read off another
+    /// binding: it *overwrites* rather than debug-asserting the requirement is
+    /// still unset, and it reaches every alternative rather than only the
+    /// first — so a two-key binding like `A` / `Left` can carry the
+    /// requirement on both, which no builder chain can express.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use bevy::prelude::KeyCode;
+    /// use bevy_keyboard_shortcuts::{ModifierType, Modifiers, Shortcuts};
+    ///
+    /// // Carry a requirement across a rebind of the same action.
+    /// let old = Shortcuts::single_press(&[KeyCode::Digit1]).without_ctrl();
+    /// let new = Shortcuts::single_press(&[KeyCode::Digit2]).with_modifiers(old.modifiers());
+    /// assert_eq!(new.modifiers().control, Some(ModifierType::RequireNotPressed));
+    ///
+    /// // Both pan keys forbid Shift, which `.without_shift()` cannot do.
+    /// let mut forbid_shift = Modifiers::default();
+    /// forbid_shift.shift = Some(ModifierType::RequireNotPressed);
+    /// let pan = Shortcuts::repeating(&[KeyCode::KeyA, KeyCode::ArrowLeft])
+    ///     .with_modifiers(forbid_shift);
+    /// assert!(pan.iter().all(|s| s.modifiers.shift == Some(ModifierType::RequireNotPressed)));
+    /// ```
+    #[must_use]
+    pub fn with_modifiers(mut self, modifiers: Modifiers) -> Self {
+        for shortcut in &mut self.shortcuts {
+            shortcut.modifiers = modifiers.clone();
+        }
+        self
+    }
+
     /// Checks if any of the shortcuts in this collection are activated.
     ///
     /// The behavior depends on the `repeats` field:
@@ -950,6 +1048,97 @@ mod tests {
     }
 
     use super::*;
+
+    #[test]
+    fn modifiers_reads_back_a_require_not_pressed_that_display_cannot_show() {
+        let recall = Shortcuts::single_press(&[KeyCode::Digit1]).without_ctrl();
+
+        assert_eq!(
+            recall.modifiers().control,
+            Some(ModifierType::RequireNotPressed)
+        );
+        // The printed form lists required-pressed modifiers only, so it cannot
+        // be the source a rebind rebuilds from.
+        assert_eq!(recall.to_string(), "1");
+    }
+
+    #[test]
+    fn modifiers_defaults_to_ignore_for_an_unbound_action() {
+        let unbound = Shortcuts::single_press(&[]);
+
+        assert!(unbound.modifiers().none());
+    }
+
+    #[test]
+    fn with_modifiers_carries_a_requirement_across_a_rebind() {
+        let old = Shortcuts::single_press(&[KeyCode::Digit1]).without_ctrl();
+
+        let rebound = Shortcuts::single_press(&[KeyCode::Digit2]).with_modifiers(old.modifiers());
+
+        assert_eq!(
+            rebound.modifiers().control,
+            Some(ModifierType::RequireNotPressed)
+        );
+        assert_eq!(
+            rebound.iter().map(|s| s.key).collect::<Vec<_>>(),
+            vec![KeyCode::Digit2]
+        );
+    }
+
+    #[test]
+    fn with_modifiers_reaches_every_alternative() {
+        // No `without_shift()` chain can express this: the builders write the
+        // first alternative only, leaving `Left` firing while Shift is held.
+        let forbid_shift = Modifiers {
+            shift: Some(ModifierType::RequireNotPressed),
+            ..Modifiers::default()
+        };
+
+        let pan =
+            Shortcuts::repeating(&[KeyCode::KeyA, KeyCode::ArrowLeft]).with_modifiers(forbid_shift);
+
+        assert!(
+            pan.iter()
+                .all(|s| s.modifiers.shift == Some(ModifierType::RequireNotPressed)),
+            "every alternative carries the requirement"
+        );
+    }
+
+    #[test]
+    fn with_modifiers_overwrites_rather_than_asserting() {
+        // The `with_*` builders debug-assert an unset requirement, so they
+        // cannot re-apply one onto a binding that already carries it.
+        let already = Shortcuts::single_press(&[KeyCode::KeyS]).with_ctrl();
+
+        let replaced = already.with_modifiers(Modifiers::default());
+
+        assert!(replaced.modifiers().none());
+    }
+
+    #[test]
+    fn a_require_not_pressed_binding_does_not_fire_under_its_modifier() {
+        let recall = Shortcuts::single_press(&[KeyCode::Digit2]).with_modifiers(
+            Shortcuts::single_press(&[KeyCode::Digit1])
+                .without_ctrl()
+                .modifiers(),
+        );
+        let mut keys = ButtonInput::<KeyCode>::default();
+
+        keys.press(KeyCode::ControlLeft);
+        keys.press(KeyCode::Digit2);
+        assert!(!recall.pressed(&keys), "suppressed while Ctrl is held");
+
+        // A fresh press: `press` re-arms `just_pressed` only for a key that was
+        // not already down, so the key has to come up first.
+        keys.release(KeyCode::ControlLeft);
+        keys.release(KeyCode::Digit2);
+        keys.clear();
+        keys.press(KeyCode::Digit2);
+        assert!(
+            recall.pressed(&keys),
+            "fires without Ctrl — positive control"
+        );
+    }
 
     #[test]
     fn test_shortcuts_display_single() {
