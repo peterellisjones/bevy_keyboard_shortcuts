@@ -185,7 +185,7 @@ use std::sync::LazyLock;
 /// Build and match shortcuts through [`Shortcuts`]; read them back through
 /// [`Shortcuts::iter`] when a UI needs the *structure* of a binding (each
 /// modifier and the key as separate parts — e.g. to draw keycaps) rather than
-/// the flat [`Display`] string.
+/// the flat [`Display`](std::fmt::Display) string.
 #[derive(Reflect, Debug, Clone, Deserialize, Serialize)]
 pub struct Shortcut {
     /// The main key that must be pressed
@@ -299,7 +299,7 @@ impl Modifiers {
 
 impl Modifiers {
     /// The display names of the modifiers this shortcut *requires* pressed, in
-    /// the order [`Display`] prints them (`Ctrl`, `Alt`, `Shift`, `Super`).
+    /// the order [`Display`](std::fmt::Display) prints them (`Ctrl`, `Alt`, `Shift`, `Super`).
     /// Ignored and require-not-pressed modifiers are omitted — this is the
     /// list a UI would draw as modifier keycaps in front of the key.
     pub fn required_names(&self) -> Vec<&'static str> {
@@ -709,7 +709,7 @@ impl Shortcuts {
     /// Reads the first alternative — the one every `with_*` / `without_*`
     /// builder writes to — and returns [`Modifiers::default`] (all ignored) for
     /// an empty binding. This is the read half of the round trip a rebind UI
-    /// needs: a `RequireNotPressed` requirement is invisible in [`Display`]
+    /// needs: a `RequireNotPressed` requirement is invisible in [`Display`](std::fmt::Display)
     /// (which prints only the modifiers a shortcut *requires pressed*), so a
     /// capture path that rebuilds a binding from its printed form silently
     /// drops it.
@@ -810,7 +810,7 @@ impl Shortcuts {
     ///
     /// Use this when a UI needs each binding as *parts* — the required
     /// modifiers ([`Modifiers::required_names`]) and the key
-    /// ([`Shortcut::key_str`]) — rather than the flat [`Display`] string,
+    /// ([`Shortcut::key_str`]) — rather than the flat [`Display`](std::fmt::Display) string,
     /// which cannot be split back apart (a bound `,` key renders as `","`,
     /// the same characters that separate alternatives).
     pub fn iter(&self) -> impl Iterator<Item = &Shortcut> {
