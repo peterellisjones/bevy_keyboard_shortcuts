@@ -12,6 +12,15 @@ with support for modifier keys (Ctrl, Alt, Shift, Super) and both single-press a
 - Serialization/deserialization support via serde for easy configuration
 - Pretty-printing of shortcuts for UI display
 
+## Bevy compatibility
+
+| Bevy | bevy_keyboard_shortcuts |
+|------|-------------------------|
+| 0.20 | 0.7                     |
+| 0.19 | 0.4 – 0.6               |
+| 0.18 | 0.3                     |
+| 0.17 | 0.1 – 0.2               |
+
 ## Example
 
 ```rust
